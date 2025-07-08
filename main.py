@@ -1,6 +1,6 @@
-from classification_engine import ClassificationEngine
-from data_loader import DataLoader
-from console_interface import ConsoleInterface
+from Classification.classification_engine import ClassificationEngine
+from utils.data_loader import DataLoader
+from UI.console_interface import ConsoleInterface
 import os
 
 class Main:
