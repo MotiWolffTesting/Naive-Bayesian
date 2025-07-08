@@ -24,3 +24,9 @@ Thumbs.db
 # Sensitive data/configuration files
 *.env
 config.ini
+
+# Guidlines
+Naive-Bayesian.pdf
+
+# Tests folder
+tests/
