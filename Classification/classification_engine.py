@@ -1,6 +1,5 @@
 import pandas as pd
-import numpy as np
-from naive_bayes_classifier import NaiveBayesClassifier
+from .naive_bayes_classifier import NaiveBayesClassifier
 from typing import Dict, Any
 
 class ClassificationEngine:

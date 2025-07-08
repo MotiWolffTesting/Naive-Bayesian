@@ -1,4 +1,4 @@
-from user_interface import UserInterface
+from UI.user_interface import UserInterface
 from typing import List
 
 class ConsoleInterface(UserInterface):
