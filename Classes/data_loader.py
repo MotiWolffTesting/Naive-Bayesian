@@ -30,7 +30,7 @@ class DataLoader:
     def split_target(self, taregt_column: str) -> Tuple[pd.DataFrame, pd.Series]:
         """Split features from target column"""
         if self._data is None:
-            return ValueError("No data has been loaded.")
+            raise ValueError("No data has been loaded.")
         
         # Separate features and target variable
         features = self._data.drop(columns=[taregt_column])
