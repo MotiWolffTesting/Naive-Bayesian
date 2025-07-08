@@ -30,3 +30,6 @@ Naive-Bayesian.pdf
 
 # Tests folder
 tests/
+
+# data
+phishing.csv
