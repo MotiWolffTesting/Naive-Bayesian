@@ -1,11 +1,11 @@
-from UI.user_interface import UserInterface
+from .user_interface import UserInterface
 from typing import List
 
 class ConsoleInterface(UserInterface):
     """Console-based user interface implementation"""
     
     def display_message(self, message: str):
-        """Display a message to the console"""
+        """Display a message to the conso4le"""
         print(message)
         
     def get_user_input(self, prompt: str) -> str:

@@ -108,9 +108,22 @@ class Main:
         test_loader = DataLoader()
         if test_loader.load_csv(file_path=file_path):
             test_data = test_loader.get_data()
+            
+            # Get target column for test data
+            headers = test_loader.get_headers()
+            self._ui.display_message("Available columns in test data:")
+            for i, header in enumerate(headers):
+                self._ui.display_message(f"{i+1}. {header}")
+            
+            target_col = self._ui.get_user_input("Enter target column name for test data: ")
+            
+            if target_col not in headers:
+                self._ui.display_message("Target column not found in test data.")
+                return
+            
             try:
-                # Call test method (accuracy is displayed internally)
-                self._classification_engine.test_model_accuracy(test_data)
+                # Call test method with specified target column
+                self._classification_engine.test_model_accuracy(test_data, target_column=target_col)
             except Exception as e:
                 self._ui.display_message(f"Error testing accuracy: {e}.")
                 
