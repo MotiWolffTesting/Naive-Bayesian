@@ -13,21 +13,28 @@ class ClassificationEngine:
     def build_model(self, data: pd.DataFrame, target_column: str) -> bool:
         """Build and train the classification model"""
         try:
+            # Validate input data
+            if data is None or data.empty:
+                raise ValueError("Data cannot be None or empty")
+            
             # Validate target column exists
             if target_column not in data.columns:
-                print("Target column not found in the data.")
-                return False
+                raise ValueError(f"Target column '{target_column}' not found in the data")
     
             # Store target column and split data
             self._target_column = target_column
             x = data.drop(columns=[target_column])
             y = data[target_column]
             
+            # Validate we have features to train on
+            if x.empty:
+                raise ValueError("No features available for training")
+            
             # Train the classifier
             self._classifier.train(x, y)
             return True
         except Exception as e:
-            print(f"Error building model: {e}.")
+            print(f"Error building model: {e}")
             return False
         
     def classify_single_record(self, record: Dict[str, Any]) -> str:
