@@ -31,6 +31,3 @@ PROJECT_EXPLANATION.txt
 
 # Tests folder
 tests/
-
-# data
-phishing.csv
