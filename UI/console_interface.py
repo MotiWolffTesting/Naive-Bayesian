@@ -5,7 +5,7 @@ class ConsoleInterface(UserInterface):
     """Console-based user interface implementation"""
     
     def display_message(self, message: str):
-        """Display a message to the conso4le"""
+        """Display a message to the console"""
         print(message)
         
     def get_user_input(self, prompt: str) -> str:

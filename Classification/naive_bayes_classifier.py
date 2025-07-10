@@ -2,6 +2,10 @@ import pandas as pd
 from typing import List, Dict, Any
 import numpy as np
 
+# Constants for Laplace smoothing
+LAPLACE_SMOOTHING_ALPHA = 1.0  # Laplace smoothing constant
+DEFAULT_UNSEEN_PROBABILITY = 1e-10  # Probability for unseen values
+
 class NaiveBayesClassifier:
     """Naive Bayesian Classifier with Laplace smoothing"""
     def __init__(self):
@@ -25,8 +29,8 @@ class NaiveBayesClassifier:
         total_samples = len(y)
         for class_value in self._classes:
             class_count = (y == class_value).sum()
-            # Apply Laplace smoothing: (count + 1) / (total + num_classes)
-            self._class_priors[class_value] = (class_count + 1) / (total_samples + len(self._classes))
+            # Apply Laplace smoothing: (count + alpha) / (total + alpha * num_classes)
+            self._class_priors[class_value] = (class_count + LAPLACE_SMOOTHING_ALPHA) / (total_samples + LAPLACE_SMOOTHING_ALPHA * len(self._classes))
         
         # Calculate conditional probabilities for each feature given each class
         self._feature_probabilities = {}
@@ -44,7 +48,7 @@ class NaiveBayesClassifier:
                 for value in unique_values:
                     value_count = (class_feature_data == value).sum()
                     # Apply Laplace smoothing for conditional probabilities
-                    self._feature_probabilities[feature][class_value][value] = (value_count + 1) / (class_size + len(unique_values))
+                    self._feature_probabilities[feature][class_value][value] = (value_count + LAPLACE_SMOOTHING_ALPHA) / (class_size + LAPLACE_SMOOTHING_ALPHA * len(unique_values))
         
         # Mark model as trained
         self._is_trained = True
@@ -67,10 +71,8 @@ class NaiveBayesClassifier:
                     if value in self._feature_probabilities[feature][class_value]:
                         feature_probability = self._feature_probabilities[feature][class_value][value]
                     else:
-                        # Handle unseen values with Laplace smoothing
-                        num_unique = len(self._feature_probabilities[feature][class_value])
-                        class_size = sum(self._feature_probabilities[feature][class_value].values()) * (num_unique - 1)
-                        feature_probability = 1 / (class_size + num_unique + 1)
+                        # Handle unseen values with default probability
+                        feature_probability = DEFAULT_UNSEEN_PROBABILITY
                         
                     log_probability += np.log(feature_probability)
                 

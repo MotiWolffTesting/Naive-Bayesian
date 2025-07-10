@@ -1,7 +1,10 @@
 import requests
+import os
 
-API_URL = "http://127.0.0.1:8000"
+# Constants
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 DECODE_ERROR_MSG = "Error: Could not decode server response. Raw response:"
+TIMEOUT_SECONDS = 30
 
 def train_model():
     """Train the model with a CSV file and target column"""
@@ -13,7 +16,8 @@ def train_model():
             response = requests.post(
                 f"{API_URL}/train",
                 files={"file": f},
-                data={"target_column": target_column}
+                data={"target_column": target_column},
+                timeout=TIMEOUT_SECONDS
             )
         try:
             result = response.json()
@@ -60,7 +64,7 @@ def test_model():
             if target_column.strip():
                 data["target_column"] = target_column
             
-            response = requests.post(f"{API_URL}/test", files=files, data=data)
+            response = requests.post(f"{API_URL}/test", files=files, data=data, timeout=TIMEOUT_SECONDS)
             
         try:
             result = response.json()
@@ -78,7 +82,7 @@ def test_model():
 def predict_single_record():
     """Classify a single user-input record"""
     # First get model info to know what features are needed
-    response = requests.get(f"{API_URL}/info")
+    response = requests.get(f"{API_URL}/info", timeout=TIMEOUT_SECONDS)
     try:
         model_info = response.json()
         if "Features" not in model_info:
@@ -95,7 +99,7 @@ def predict_single_record():
             record[feature] = value
             
         # Send prediction request
-        response = requests.post(f"{API_URL}/predict", json=record)
+        response = requests.post(f"{API_URL}/predict", json=record, timeout=TIMEOUT_SECONDS)
         try:
             result = response.json()
             if "prediction" in result:
@@ -109,7 +113,7 @@ def predict_single_record():
 
 def show_model_info():
     """Display detailed model information"""
-    response = requests.get(f"{API_URL}/info")
+    response = requests.get(f"{API_URL}/info", timeout=TIMEOUT_SECONDS)
     try:
         info = response.json()
         print("\nModel Information")
