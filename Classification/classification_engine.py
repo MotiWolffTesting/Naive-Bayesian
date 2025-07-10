@@ -34,14 +34,17 @@ class ClassificationEngine:
         """Classify a single record and return predicted class"""
         return self._classifier.predict_single(record)
     
-    def test_model_accuracy(self, test_data: pd.DataFrame) -> float:
+    def test_model_accuracy(self, test_data: pd.DataFrame, target_column: str = None) -> float:
         """Test model accuracy on test dataset"""
-        if self._target_column not in test_data.columns:
-            raise ValueError("Test data must contain the target column")
+        # Use provided target column or fall back to the one used for training
+        test_target_column = target_column if target_column else self._target_column
+        
+        if test_target_column not in test_data.columns:
+            raise ValueError(f"Test data must contain the target column '{test_target_column}'")
         
         # Split test data into features and target
-        x_test = test_data.drop(columns=[self._target_column])
-        y_test = test_data[self._target_column]
+        x_test = test_data.drop(columns=[test_target_column])
+        y_test = test_data[test_target_column]
         
         # Get predictions for all test samples
         predictions = self._classifier.predict_group(x_test)

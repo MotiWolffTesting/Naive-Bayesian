@@ -17,12 +17,12 @@ async def train(file: UploadFile = File(...), target_column: str = Form(...)):
     if target_column not in df.columns:
         return JSONResponse(status_code=400, content={"error": "Invalid target column"})
     engine.build_model(df, target_column)
-    return {"status": "Model trained", "target column": target_column}
+    return {"status": "Model trained", "target_column": target_column}
 
 @app.post("/predict")
 async def predict(record: dict):
     """Classify a single record (JSON)"""
-    if not engine.is_model_ready:
+    if not engine.is_model_ready():
         return JSONResponse(status_code=400, content={"error": "Model is not trained yet."})
     try:
         result = engine.classify_single_record(record=record)
@@ -31,13 +31,15 @@ async def predict(record: dict):
         return JSONResponse(status_code=400, content={"error": str(e)})
     
 @app.post("/test")
-async def test(file: UploadFile = File(...)):
-    """Test model accuracy with csv file"""
-    if not engine.is_model_ready:
+async def test(file: UploadFile = File(...), target_column: str = Form(None)):
+    """
+    Test model accuracy with a CSV file.
+    """
+    if not engine.is_model_ready():
         return JSONResponse(status_code=400, content={"error": "Model is not trained yet."})
     df = read_csv_upload(file)
     try:
-        accuracy = engine.test_model_accuracy(df)
+        accuracy = engine.test_model_accuracy(df, target_column=target_column)
         return {"accuracy": accuracy}
     except Exception as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
