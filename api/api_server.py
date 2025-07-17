@@ -101,4 +101,20 @@ async def test(file: UploadFile = File(...), target_column: str = Form(None)):
 @app.get("/info")
 async def info():
     """Get model info"""
-    return engine.get_classifier_info()
+    import numpy as np
+    info = engine.get_classifier_info()
+    # Recursively convert numpy types to native Python types
+    def convert(obj):
+        if isinstance(obj, dict):
+            return {k: convert(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert(i) for i in obj]
+        elif isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return obj
+    return JSONResponse(content=convert(info))
