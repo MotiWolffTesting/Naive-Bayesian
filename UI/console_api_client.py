@@ -1,18 +1,20 @@
 import requests
 import os
 
-# Constants
+# Constants for API connection
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 DECODE_ERROR_MSG = "Error: Could not decode server response. Raw response:"
 TIMEOUT_SECONDS = 30
 
-def train_model():
-    """Train the model with a CSV file and target column"""
-    file_path = input("Enter file path (csv): ")
-    target_column = input("Enter target column name: ")
-    
+# Train the model via API (non-interactive if params provided)
+def train_model(file_path=None, target_column=None):
+    if file_path is None:
+        file_path = input("Enter file path (csv): ")
+    if target_column is None:
+        target_column = input("Enter target column name: ")
     try:
         with open(file_path, "rb") as f:
+            # Send POST request to /train endpoint
             response = requests.post(
                 f"{API_URL}/train",
                 files={"file": f},
@@ -22,7 +24,11 @@ def train_model():
         try:
             result = response.json()
             if "status" in result:
-                print("Model built successfully!")
+                # Print message if model is already cached
+                if result.get("cached"):
+                    print("Model is already built for this dataset and target column.")
+                else:
+                    print("Model built successfully!")
                 print(f"Target column: {result.get('target_column', 'N/A')}")
                 return True
             else:
@@ -38,34 +44,30 @@ def train_model():
         print(f"Error loading file: {e}")
         return False
 
-def test_model():
-    """Test model accuracy on external dataset"""
-    file_path = input("Enter a file path: ")
-    
+# Test model accuracy via API (non-interactive if params provided)
+def test_model(file_path=None, target_column=None):
+    if file_path is None:
+        file_path = input("Enter a file path: ")
     try:
         with open(file_path, "rb") as f:
-            # First, get the file info to show available columns
+            # Read CSV to get columns if needed
             import pandas as pd
             df = pd.read_csv(file_path)
-            print("Available columns in test data:")
-            for i, header in enumerate(df.columns):
-                print(f"{i+1}. {header}")
-            
-            target_column = input("Enter target column name for test data: ")
-            
+            if target_column is None:
+                print("Available columns in test data:")
+                for i, header in enumerate(df.columns):
+                    print(f"{i+1}. {header}")
+                target_column = input("Enter target column name for test data: ")
             if target_column not in df.columns:
                 print("Target column not found in test data.")
                 return
-            
-            # Reset file pointer and send request
+            # Reset file pointer and send POST request to /test
             f.seek(0)
             files = {"file": f}
             data = {}
             if target_column.strip():
                 data["target_column"] = target_column
-            
             response = requests.post(f"{API_URL}/test", files=files, data=data, timeout=TIMEOUT_SECONDS)
-            
         try:
             result = response.json()
             if "accuracy" in result:
@@ -79,8 +81,8 @@ def test_model():
     except Exception as e:
         print(f"Error loading test file: {e}")
 
+# Classify a single user-input record
 def predict_single_record():
-    """Classify a single user-input record"""
     # First get model info to know what features are needed
     response = requests.get(f"{API_URL}/info", timeout=TIMEOUT_SECONDS)
     try:
@@ -111,8 +113,8 @@ def predict_single_record():
     except Exception:
         print("Error getting model information.")
 
+# Display detailed model information
 def show_model_info():
-    """Display detailed model information"""
     response = requests.get(f"{API_URL}/info", timeout=TIMEOUT_SECONDS)
     try:
         info = response.json()

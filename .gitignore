@@ -28,6 +28,7 @@ config.ini
 # Guidlines
 Naive-Bayesian.pdf
 PROJECT_EXPLANATION.txt
+refactoring.txt
 
 # Tests folder
 tests/
