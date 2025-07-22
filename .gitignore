@@ -29,6 +29,7 @@ config.ini
 Naive-Bayesian.pdf
 PROJECT_EXPLANATION.txt
 refactoring.txt
+split_data.py
 
 # Tests folder
 tests/

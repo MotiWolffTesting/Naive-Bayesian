@@ -2,184 +2,144 @@
 
 ## Overview
 
-This project implements a Naive Bayes classifier from scratch in Python, designed to classify tabular data (such as CSV files) using supervised learning. The project provides multiple interfaces including a console application, FastAPI server, and Docker containerization for easy deployment and usage.
+This project implements a Naive Bayes classifier for categorical/tabular data, featuring:
+- A FastAPI server for all model/data operations (model-api container)
+- A client container (classifier-client) that interacts with the API (can be automated or interactive)
+- Modular, maintainable codebase with clear separation of concerns
+- Dockerized deployment for both API and client
+- Caching of results to avoid redundant computation
 
-## Features
-
-- **Naive Bayes algorithm** with Laplace smoothing
-- **Multiple interfaces**: Console UI and FastAPI REST API
-- **Docker support** for easy deployment
-- Train on one dataset, test on another (supports standard train/test splits)
-- Classify individual records or entire datasets
-- Modular, object-oriented codebase with clear separation of concerns
-- Comprehensive error handling and input validation
-- Support for large CSV files (up to 100MB)
+---
 
 ## Project Structure
 
 ```
 Naive-Baysian/
-├── Classification/
-│   ├── classification_engine.py    # Main classification logic
-│   └── naive_bayes_classifier.py   # Naive Bayes implementation
 ├── api/
-│   └── api_server.py              # FastAPI server
+│   └── api_server.py              # FastAPI server exposing model endpoints
+├── classifier/
+│   ├── engine.py                  # Orchestrates model operations (API-side)
+│   └── classifier.py              # Core Naive Bayes algorithm
+├── model_management/
+│   ├── builder.py                 # Model builder/trainer
+│   ├── cleaner.py                 # Data cleaning (Laplace, etc.)
+│   ├── data_loader.py             # CSV data loading utilities
+│   ├── model.py                   # Model data structure
+│   └── validator.py               # Validation (split, confusion matrix)
 ├── UI/
-│   ├── console_interface.py       # Console UI
-│   └── user_interface.py          # API client interface
-├── utils/
-│   └── data_loader.py             # Data loading utilities
-├── main.py                        # Console application entry point
+│   └── console_api_client.py      # CLI client for API interaction (automated or interactive)
+├── data/                          # Example datasets (CSV)
+├── main.py                        # Automated API client entry point
+├── Dockerfile                     # Docker build for API
+├── Dockerfile.client              # Docker build for client
+├── default_cmd.sh                 # Entrypoint script for client container
 ├── requirements.txt               # Python dependencies
-├── Dockerfile                     # Docker configuration
-├── docker-compose.yml            # Docker Compose configuration
-└── README.md
+└── README.md                      # Project documentation
 ```
 
-## Getting Started
+---
 
-### Prerequisites
+## How It Works (v2: Split Containers)
 
-- Python 3.7+ (for local development)
-- Docker (for containerized deployment)
+- **model-api container**: Runs the FastAPI server. Handles all data loading, model building, validation, and prediction.
+- **classifier-client container**: Runs the client code (main.py, UI/console_api_client.py). Sends requests to the API server for all operations.
+- **Communication**: The client container connects to the API container using the Docker network (API_URL is set to `http://model-api:8000`).
+- **Caching**: The API server caches results for each unique dataset/target column combination.
 
-### Option 1: Local Development
+---
 
-1. **Clone or download the repository**
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Building and Running (Without docker-compose)
 
-3. **Run the console application:**
-   ```bash
-   python main.py
-   ```
+### 1. Build the API Server Image
+```sh
+docker build -t model-api -f Dockerfile .
+```
 
-4. **Or run the FastAPI server:**
-   ```bash
-   uvicorn api.api_server:app --reload
-   ```
+### 2. Build the Client Image
+```sh
+docker build -t classifier-client -f Dockerfile.client .
+```
 
-### Option 2: Docker Deployment
+### 3. Create a Docker Network
+```sh
+docker network create nb-network
+```
 
-1. **Build and run with Docker Compose:**
-   ```bash
-   docker-compose up --build
-   ```
+### 4. Run the API Server Container
+```sh
+docker run -d --name model-api --network nb-network -p 8000:8000 model-api
+```
 
-2. **Or build and run manually:**
-   ```bash
-   docker build -t naive-bayes-classifier .
-   docker run -p 8000:8000 naive-bayes-classifier
-   ```
+### 5. Run the Client Container
+```sh
+docker run --name classifier-client --network nb-network -e API_URL=http://model-api:8000 classifier-client
+```
+- The client will run `main.py` and then stay alive for inspection.
+- Both containers can access the `data/` directory if you add `-v $(pwd)/data:/app/data` to both run commands.
 
-## Usage
+---
 
-### Console Interface
+## API Endpoints
 
-The console application provides an interactive menu:
+- **POST `/train`**: Train the model with a CSV file and target column (caching enabled)
+- **POST `/predict`**: Classify a single record (JSON)
+- **POST `/test`**: Test model accuracy with a CSV file (caching enabled)
+- **GET `/info`**: Get model information and statistics
 
-1. **Train Model**: Upload a CSV file and specify the target column
-2. **Test Accuracy**: Test the model with a separate CSV file
-3. **Classify Record**: Predict the class of a single record
-4. **View Model Info**: Display model statistics and parameters
+---
 
-### FastAPI Server
+## Example API Usage (from host or client container)
 
-The API server runs on `http://localhost:8000` and provides the following endpoints:
-
-#### POST `/train`
-Train the model with a CSV file.
-- **Parameters**: 
-  - `file`: CSV file upload
-  - `target_column`: Name of the target column (form data)
-
-#### POST `/predict`
-Classify a single record.
-- **Body**: JSON object with feature values
-
-#### POST `/test`
-Test model accuracy with a CSV file.
-- **Parameters**:
-  - `file`: CSV file upload
-  - `target_column`: Name of the target column (optional, form data)
-
-#### GET `/info`
-Get model information and statistics.
-
-### Example API Usage
-
-```bash
+```sh
 # Train the model
 curl -X POST "http://localhost:8000/train" \
-  -F "file=@phishing.csv" \
-  -F "target_column=class"
+  -F "file=@data/mushroom_train.csv" \
+  -F "target_column=edible"
+
+# Test accuracy
+curl -X POST "http://localhost:8000/test" \
+  -F "file=@data/mushroom_train.csv" \
+  -F "target_column=edible"
 
 # Predict a record
 curl -X POST "http://localhost:8000/predict" \
   -H "Content-Type: application/json" \
-  -d '{"feature1": "value1", "feature2": "value2"}'
-
-# Test accuracy
-curl -X POST "http://localhost:8000/test" \
-  -F "file=@test_data.csv" \
-  -F "target_column=class"
+  -d '{"cap_shape": "x", "cap_surface": "s", ...}'
 
 # Get model info
 curl "http://localhost:8000/info"
 ```
 
+---
+
 ## Data Format
 
-The classifier expects CSV files with:
-- **Features**: Any number of columns containing feature values
-- **Target Column**: One column containing the class labels
-- **Data Types**: Supports both categorical and numerical features
+- CSV files with features as columns and a target column for class labels.
+- Example:
+  ```csv
+  cap_shape,cap_surface,cap_color,bruises,odor,edible
+  x,s,n,t,p,e
+  x,y,w,t,p,p
+  ...
+  ```
 
-### Example CSV Structure
-```csv
-feature1,feature2,feature3,class
-value1,value2,value3,positive
-value4,value5,value6,negative
-```
+---
 
 ## Configuration
 
-### Environment Variables
-- `MAX_FILE_SIZE`: Maximum file size for uploads (default: 100MB)
-- `SUPPORTED_FORMATS`: Supported file formats (default: ['.csv'])
+- **API_URL**: Set in the client container to `http://model-api:8000` (via environment variable)
+- **Data directory**: Mount `./data` to `/app/data` in both containers for shared access
 
-### Docker Configuration
-- **Port**: 8000 (configurable in docker-compose.yml)
-- **Memory**: Optimized for containerized deployment
-- **Dependencies**: All requirements included in container
+---
 
-## Development
+## Development & Extensibility
 
-### Code Structure
-- **Classification Engine**: Main orchestration logic
-- **Naive Bayes Classifier**: Core algorithm implementation
-- **Data Loader**: CSV parsing and validation
-- **UI Components**: Console and API interfaces
-- **API Server**: FastAPI implementation with comprehensive error handling
+- Modular codebase: Easy to add new classifiers, UIs, or API endpoints
+- Caching: Results are cached by dataset and target column
+- Error handling: All endpoints validate input and provide clear error messages
+- Docker: Both API and client are fully containerized
 
-### Adding New Features
-The modular design makes it easy to:
-- Add new classification algorithms
-- Implement additional UI interfaces
-- Extend API endpoints
-- Add new data preprocessing steps
-
-## Error Handling
-
-The application includes comprehensive error handling for:
-- Invalid file formats
-- Missing target columns
-- Empty datasets
-- Model training failures
-- API request validation
-- File size limits
+---
 
 ## License
 
