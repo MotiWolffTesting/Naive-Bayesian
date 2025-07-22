@@ -1,17 +1,21 @@
 import pandas as pd
-from .naive_bayes_trainer import NaiveBayesTrainer
-from .naive_bayes_classifier import NaiveBayesClassifier
-from .naive_bayes_model import NaiveBayesModel
+from model_management.builder import NaiveBayesTrainer
+from classifier.classifier import NaiveBayesClassifier
+from model_management.model import NaiveBayesModel
+from model_management.cleaner import Cleaner
+from model_management.validator import Validator
 from typing import Dict, Any
 
 class ClassificationEngine:
     """Classification Engine wrapper for Naive Bayes model"""
-    def __init__(self):
-        self._trainer = NaiveBayesTrainer()
+    def __init__(self, cleaner: Cleaner = None):
+        self._cleaner = cleaner if cleaner is not None else Cleaner()
+        self._trainer = NaiveBayesTrainer(self._cleaner)
         self._model = None
         self._classifier = None
         self._target_column = None
-        
+        self._validator = Validator()
+    
     def build_model(self, data: pd.DataFrame, target_column: str) -> bool:
         """Build and train the classification model"""
         try:
@@ -30,7 +34,7 @@ class ClassificationEngine:
         except Exception as e:
             print(f"Error building model: {e}")
             return False
-        
+    
     def classify_single_record(self, record: Dict[str, Any]) -> str:
         """Classify a single record and return predicted class"""
         if not self._classifier:
@@ -54,6 +58,22 @@ class ClassificationEngine:
         print(f"Correct Classifications: {correct_predictions}.")
         print(f"Model Accuracy: {accuracy:.2%}")
         return accuracy
+    
+    def validate_with_split(self, data: pd.DataFrame, target_column: str, test_size: float = 0.3):
+        """Split data, train on train set, test on test set, print confusion matrix and accuracy."""
+        x_train, x_test, y_train, y_test = self._validator.split_data(data, target_column, test_size=test_size)
+        # Train model on train set
+        model = self._trainer.train(x_train, y_train)
+        classifier = NaiveBayesClassifier(model)
+        # Predict on test set
+        predictions = classifier.classify_group(x_test)
+        # Compute confusion matrix
+        cm = self._validator.compute_confusion_matrix(y_test, predictions)
+        accuracy = sum(pred == true for pred, true in zip(predictions, y_test)) / len(y_test)
+        print("Validation Results (70/30 split):")
+        print("Confusion Matrix:")
+        print(cm)
+        print(f"Accuracy: {accuracy:.2%}")
     
     def get_classifier_info(self) -> Dict:
         """Return information about the underlying classifier"""
